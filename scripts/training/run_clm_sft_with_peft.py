@@ -53,7 +53,6 @@ from peft.tuners.lora import LoraLayer
 
 from transformers.trainer_utils import PREFIX_CHECKPOINT_DIR
 
-
 require_version("datasets>=1.8.0", "To fix: pip install -r examples/pytorch/language-modeling/requirements.txt")
 
 
@@ -234,24 +233,23 @@ class DataTrainingArguments:
 
 @dataclass
 class MyTrainingArguments(TrainingArguments):
-    trainable : Optional[str] = field(default="q_proj,v_proj")
-    lora_rank : Optional[int] = field(default=8)
-    lora_dropout : Optional[float] = field(default=0.1)
-    lora_alpha : Optional[float] = field(default=32.)
-    modules_to_save : Optional[str] = field(default=None)
-    peft_path : Optional[str] = field(default=None)
-    use_flash_attention_2 : Optional[bool] = field(default=False)
+    trainable: Optional[str] = field(default="q_proj,v_proj")
+    lora_rank: Optional[int] = field(default=8)
+    lora_dropout: Optional[float] = field(default=0.1)
+    lora_alpha: Optional[float] = field(default=32.)
+    modules_to_save: Optional[str] = field(default=None)
+    peft_path: Optional[str] = field(default=None)
+    use_flash_attention_2: Optional[bool] = field(default=False)
     double_quant: Optional[bool] = field(default=True)
     quant_type: Optional[str] = field(default="nf4")
     load_in_kbits: Optional[int] = field(default=16)
-    full_finetuning : Optional[bool] = field(default=False)
+    full_finetuning: Optional[bool] = field(default=False)
 
 
 logger = logging.getLogger(__name__)
 
 
 def main():
-
     parser = HfArgumentParser((ModelArguments, DataTrainingArguments, MyTrainingArguments))
     if len(sys.argv) == 2 and sys.argv[1].endswith(".json"):
         # If we pass only one argument to the script and it's the path to a json file,
@@ -263,10 +261,9 @@ def main():
     send_example_telemetry("run_clm", model_args, data_args)
 
     # Setup logging
-    logging.basicConfig(format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",datefmt="%m/%d/%Y %H:%M:%S",
-        level=logging.INFO,  # if training_args.local_rank in [-1, 0] else logging.WARN,
-        handlers=[logging.StreamHandler(sys.stdout)],)
-
+    logging.basicConfig(format="%(asctime)s - %(levelname)s - %(name)s - %(message)s", datefmt="%m/%d/%Y %H:%M:%S",
+                        level=logging.INFO,  # if training_args.local_rank in [-1, 0] else logging.WARN,
+                        handlers=[logging.StreamHandler(sys.stdout)], )
 
     if training_args.should_log:
         # The default of training_args.log_level is passive, so we set log level at info here to have that default.
@@ -342,20 +339,20 @@ def main():
                          "Please use Chinese-LLaMA-2 tokenizer.")
 
     data_collator = DataCollatorForSupervisedDataset(tokenizer=tokenizer)
-    eval_dataset=None
+    eval_dataset = None
     train_dataset = None
 
     if training_args.do_train:
         with training_args.main_process_first(desc="loading and tokenization"):
             path = Path(data_args.dataset_dir)
-            files = [os.path.join(path,file.name) for file in path.glob("*.json")]
+            files = [os.path.join(path, file.name) for file in path.glob("*.json")]
             logger.info(f"Training files: {' '.join(files)}")
             train_dataset = build_instruction_dataset(
                 data_path=files,
                 tokenizer=tokenizer,
                 max_seq_length=data_args.max_seq_length,
-                data_cache_dir = None,
-                preprocessing_num_workers = data_args.preprocessing_num_workers)
+                data_cache_dir=None,
+                preprocessing_num_workers=data_args.preprocessing_num_workers)
         logger.info(f"Num train_samples  {len(train_dataset)}")
         logger.info("Training example:")
         logger.info(tokenizer.decode(train_dataset[0]['input_ids']))
@@ -367,8 +364,8 @@ def main():
                 data_path=files,
                 tokenizer=tokenizer,
                 max_seq_length=data_args.max_seq_length,
-                data_cache_dir = None,
-                preprocessing_num_workers = data_args.preprocessing_num_workers)
+                data_cache_dir=None,
+                preprocessing_num_workers=data_args.preprocessing_num_workers)
         logger.info(f"Num eval_samples  {len(eval_dataset)}")
         logger.info("Evaluation example:")
         logger.info(tokenizer.decode(eval_dataset[0]['input_ids']))
@@ -393,7 +390,7 @@ def main():
             load_in_8bit_skip_modules=load_in_8bit_skip_modules,
             bnb_4bit_compute_dtype=compute_dtype,
             bnb_4bit_use_double_quant=training_args.double_quant,
-            bnb_4bit_quant_type=training_args.quant_type # {'fp4', 'nf4'}
+            bnb_4bit_quant_type=training_args.quant_type  # {'fp4', 'nf4'}
         )
     else:
         load_in_4bit = False
@@ -401,7 +398,7 @@ def main():
         quantization_config = None
     if quantization_config is not None:
         logger.info(f"quantization_config:{quantization_config.to_dict()}")
-    device_map = {"":int(os.environ.get("LOCAL_RANK") or 0)}
+    device_map = {"": int(os.environ.get("LOCAL_RANK") or 0)}
     model = LlamaForCausalLM.from_pretrained(
         model_args.model_name_or_path,
         config=config,
@@ -456,13 +453,14 @@ def main():
         ).__get__(model, type(model))
 
     if not training_args.full_finetuning and training_args.gradient_checkpointing and \
-        (not model.modules_to_save or 'embed_tokens' not in model.modules_to_save):
+            (not model.modules_to_save or 'embed_tokens' not in model.modules_to_save):
         # enable requires_grad to avoid exception during backward pass when using gradient_checkpoint without tuning embed.
         if hasattr(model.base_model, "enable_input_require_grads"):
             model.base_model.enable_input_require_grads()
         elif hasattr(model.base_model, "get_input_embeddings"):
             def make_inputs_require_grad(_module, _input, _output):
                 _output.requires_grad_(True)
+
             model.base_model.get_input_embeddings().register_forward_hook(make_inputs_require_grad)
 
     # Initialize our Trainer
@@ -498,7 +496,7 @@ def main():
         logger.info("*** Evaluate ***")
 
         metrics = trainer.evaluate()
-        metrics["eval_samples"] =len(eval_dataset)
+        metrics["eval_samples"] = len(eval_dataset)
         try:
             perplexity = math.exp(metrics["eval_loss"])
         except OverflowError:
