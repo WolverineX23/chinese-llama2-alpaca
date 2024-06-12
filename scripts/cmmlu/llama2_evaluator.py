@@ -10,6 +10,7 @@ from transformers import AutoModelForCausalLM, LlamaTokenizer
 from transformers import GenerationConfig
 from evaluator import Evaluator
 
+
 class Llama_Evaluator(Evaluator):
     def __init__(self, choices, k, model_path, device, temperature=0.2, verbose=False):
         super(Llama_Evaluator, self).__init__(choices, model_path, k)
@@ -44,16 +45,15 @@ class Llama_Evaluator(Evaluator):
         self.C_id = self.tokenizer.encode("：C")[-1]
         self.D_id = self.tokenizer.encode("：D")[-1]
 
-
     def eval_subject(self, subject_name,
-            test_df,
-            dev_df=None,
-            few_shot=False,
-            cot=False,
-            save_result_dir=None,
-            with_prompt=False,
-            constrained_decoding=False,
-            do_test=False):
+                     test_df,
+                     dev_df=None,
+                     few_shot=False,
+                     cot=False,
+                     save_result_dir=None,
+                     with_prompt=False,
+                     constrained_decoding=False,
+                     do_test=False):
         all_answers = {}
         if constrained_decoding is True:
             self.generation_config.output_scores = True
@@ -67,44 +67,45 @@ class Llama_Evaluator(Evaluator):
             result = []
             score = []
         if few_shot:
-          if with_prompt:
-            history = self.generate_few_shot_prompt(subject_name, dev_df, cot=cot)
-          else:
-            history = self.generate_few_shot_noprompt(subject_name, dev_df, cot=cot)
+            if with_prompt:
+                history = self.generate_few_shot_prompt(subject_name, dev_df, cot=cot)
+            else:
+                history = self.generate_few_shot_noprompt(subject_name, dev_df, cot=cot)
         else:
             history = ''
         answers = ['NA'] * len(test_df) if do_test is True else list(test_df['Answer'])
         for row_index, row in tqdm(test_df.iterrows(), total=len(test_df)):
-            question = self.format_example(row, include_answer=False, cot=cot,with_prompt=with_prompt)
-            instruction =  question
+            question = self.format_example(row, include_answer=False, cot=cot, with_prompt=with_prompt)
+            instruction = question
             if with_prompt:
                 DEFAULT_SYSTEM_PROMPT = """你是一个乐于助人的助手。"""
                 prompt_template = (
-                                        "[INST] <<SYS>>\n"
-                                        "{system_prompt}\n"
-                                        "<</SYS>>\n\n"
-                                        "{instruction} [/INST]"
-                                    )
+                    "[INST] <<SYS>>\n"
+                    "{system_prompt}\n"
+                    "<</SYS>>\n\n"
+                    "{instruction} [/INST]"
+                )
 
-                instruction = prompt_template.format_map({'instruction': instruction,'system_prompt':DEFAULT_SYSTEM_PROMPT})
-            instruction=history+instruction
+                instruction = prompt_template.format_map(
+                    {'instruction': instruction, 'system_prompt': DEFAULT_SYSTEM_PROMPT})
+            instruction = history + instruction
 
             inputs = self.tokenizer(instruction, return_tensors="pt")
             generation_output = self.model.generate(
-                    input_ids = inputs["input_ids"].to(self.device),
-                    attention_mask = inputs['attention_mask'].to(self.device),
-                    eos_token_id=self.tokenizer.eos_token_id,
-                    pad_token_id=self.tokenizer.pad_token_id,
-                    generation_config = self.generation_config
-                )
+                input_ids=inputs["input_ids"].to(self.device),
+                attention_mask=inputs['attention_mask'].to(self.device),
+                eos_token_id=self.tokenizer.eos_token_id,
+                pad_token_id=self.tokenizer.pad_token_id,
+                generation_config=self.generation_config
+            )
 
             _, length = inputs.input_ids.shape
             if constrained_decoding is True:
                 logits = generation_output.scores[0][0]
 
                 logits = logits.float().cpu().detach()
-                choices1_logits = logits[[self.sA_id,self.sB_id,self.sC_id,self.sD_id]]
-                choices2_logits = logits[[self.A_id,self.B_id,self.C_id,self.D_id]]
+                choices1_logits = logits[[self.sA_id, self.sB_id, self.sC_id, self.sD_id]]
+                choices2_logits = logits[[self.A_id, self.B_id, self.C_id, self.D_id]]
                 choicesAll_logits = (choices1_logits + choices2_logits).numpy()
                 assert not (np.any(np.isinf(choicesAll_logits)) or np.any(np.isnan(choicesAll_logits)))
                 ans = {0: "A", 1: "B", 2: "C", 3: "D"}[np.argmax(choicesAll_logits)]
@@ -129,7 +130,7 @@ class Llama_Evaluator(Evaluator):
 
             all_answers[str(row_index)] = ans
 
-        correct_ratio = 100*correct_num/len(answers)
+        correct_ratio = 100 * correct_num / len(answers)
 
         if save_result_dir:
             test_df['model_output'] = result
@@ -146,7 +147,7 @@ class Llama_Evaluator(Evaluator):
         if include_answer:
             if cot:
                 example += "\n答案：让我们一步一步思考，\n" + \
-                    line["explanation"] + f"\n所以答案是{line['Answer']}。\n\n"
+                           line["explanation"] + f"\n所以答案是{line['Answer']}。\n\n"
             else:
                 example += '\n答案：' + suffix + line["Answer"] + '\n\n'
         else:
@@ -161,6 +162,7 @@ class Llama_Evaluator(Evaluator):
                 else:
                     example += '\n答案：'
         return example
+
     def generate_few_shot_noprompt(self, subject, dev_df, cot=False):
         prompt = f"以下是中国关于{subject}考试的单项选择题，请选出其中的正确答案。\n\n"
         k = self.k
@@ -178,24 +180,25 @@ class Llama_Evaluator(Evaluator):
         DEFAULT_SYSTEM_PROMPT = """你是一个乐于助人的助手。"""
         prompt = f"以下是中国关于{subject}考试的单项选择题，请选出其中的正确答案。\n\n"
         prompt_template = (
-                                        "[INST] <<SYS>>\n"
-                                        "{system_prompt}\n"
-                                        "<</SYS>>\n\n"
-                                        "{instruction} [/INST]好的，我会结合{subject}相关知识回答"
-                                    )
+            "[INST] <<SYS>>\n"
+            "{system_prompt}\n"
+            "<</SYS>>\n\n"
+            "{instruction} [/INST]好的，我会结合{subject}相关知识回答"
+        )
 
-        prompt = prompt_template.format_map({'instruction':prompt,'system_prompt':DEFAULT_SYSTEM_PROMPT,"subject":subject})
+        prompt = prompt_template.format_map(
+            {'instruction': prompt, 'system_prompt': DEFAULT_SYSTEM_PROMPT, "subject": subject})
         k = self.k
         if self.k == -1:
             k = dev_df.shape[0]
         for i in range(k):
-            line=dev_df.iloc[i, :]
-            q=line['Question']
+            line = dev_df.iloc[i, :]
+            q = line['Question']
             for choice in self.choices:
                 q += f'\n{choice}. {line[f"{choice}"]}'
 
-            a=line['Answer']
-            prompt+="[INST] "+q+"\n答案：[/INST]"+a+"\n"
+            a = line['Answer']
+            prompt += "[INST] " + q + "\n答案：[/INST]" + a + "\n"
 
         return prompt
 
@@ -228,11 +231,11 @@ class Llama_Evaluator(Evaluator):
         pattern = ""
         for c in self.choices:
             choices_dict[str(line[f'{c}'])] = c
-            pattern += re.escape(str(line[f'{c}']))+"|"
+            pattern += re.escape(str(line[f'{c}'])) + "|"
         pattern = pattern[:-1]
         m = re.findall(pattern, gen_ans, re.M)
-        print("w/ escape:",repr(pattern),gen_ans,(len(m)>=1))
+        print("w/ escape:", repr(pattern), gen_ans, (len(m) >= 1))
         if len(m) >= 1:
             answer = choices_dict[m[0]]
             return answer, False
-        return  random.choice('ABCD'), False
+        return random.choice('ABCD'), False

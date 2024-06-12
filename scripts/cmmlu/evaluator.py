@@ -1,5 +1,7 @@
 # This code is modified from C-Eval Project: https://github.com/SJTU-LIT/ceval
 import string
+
+
 class Evaluator:
     def __init__(self, choices, model_path, k=-1):
         self.choices = choices
@@ -29,13 +31,13 @@ class Evaluator:
     def eval_subject(self, subject_name, test_df, dev_df=None, few_shot=False, save_result_dir=None):
         pass
 
-    def normalize_answer(self,s):
+    def normalize_answer(self, s):
 
         def white_space_fix(text):
             return ' '.join(text.split())
 
         def remove_punc(text):
-            exclude=set(self.puncs)
+            exclude = set(self.puncs)
             return ''.join(ch for ch in text if ch not in exclude)
 
         def lower(text):
@@ -43,5 +45,5 @@ class Evaluator:
 
         return white_space_fix(remove_punc(lower(s)))
 
-    def exact_match(self,pred, target):
-        return self.normalize_answer(pred)==self.normalize_answer(target)
+    def exact_match(self, pred, target):
+        return self.normalize_answer(pred) == self.normalize_answer(target)
