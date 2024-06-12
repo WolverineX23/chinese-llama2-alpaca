@@ -5,6 +5,7 @@
 .idea/*
 
 base/*
+data/*
 
 __pycache__/*
 
