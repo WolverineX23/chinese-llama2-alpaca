@@ -6,6 +6,8 @@
 
 base/*
 data/*
+scripts/ceval/data
+scripts/cmmlu/data
 
 __pycache__/*
 
