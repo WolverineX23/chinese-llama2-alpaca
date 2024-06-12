@@ -6,15 +6,16 @@ lora_trainable="q_proj,v_proj,k_proj,o_proj,gate_proj,down_proj,up_proj"
 modules_to_save="embed_tokens,lm_head"
 lora_dropout=0.05
 
-pretrained_model=
-chinese_tokenizer_path=path/to/chinese-llama-2/tokenizer/dir
-dataset_dir=path/to/sft/data/dir
+pretrained_model=./base/chinese-alpaca-2-7b                     # meta-llama2-hf/chinese-llama2/chinese-alpaca2
+chinese_tokenizer_path=./base/chinese-alpaca-2-7b               # Chinese-LLaMA-2 tokenizer 所在的目录 - 不区分 llama2 和 alpaca2
+peft_path=./base/deft/chinese-alpaca-2-lora-7b                  # meta-llama2-hf[model] -- chinese-llama2/alpaca2-lora[peft] 或 chinese-llama2/alpaca2[model] -- 不要peft
+dataset_dir=./data/sft/xxx                                      # 指令精调数据的目录, 可包含数个 .json 的 Stanford Alpaca 格式的文件
+validation_file=./data/sft/validation/xxx                       # 用作验证集的单个指令精调文件, .json 的 Stanford Alpaca 格式文件
+output_dir=output_dir
 per_device_train_batch_size=1
 per_device_eval_batch_size=1
 gradient_accumulation_steps=8
 max_seq_length=512
-output_dir=output_dir
-validation_file=validation_file_name
 
 deepspeed_config_file=ds_zero2_no_offload.json
 
@@ -58,4 +59,5 @@ torchrun --nnodes 1 --nproc_per_node 1 run_clm_sft_with_peft.py \
     --load_in_kbits 16 \
     --save_safetensors False \
     --gradient_checkpointing \
-    --ddp_find_unused_parameters False
+    --ddp_find_unused_parameters False \
+#    --peft_path      若 model_name_or_path 为完整的中文 llama/alpaca 模型, 则勿提供此参数
